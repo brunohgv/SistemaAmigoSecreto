@@ -2,6 +2,9 @@ package sample.controller;
 
 import beans.Grupo;
 import beans.Pessoa;
+import controller.Fachada;
+import data.IRepositorioGrupo;
+import data.IRepositorioPessoa;
 import data.RepositorioGrupo;
 import data.RepositorioPessoa;
 import javafx.collections.FXCollections;
@@ -17,8 +20,7 @@ import java.util.ResourceBundle;
 
 public class MenuGruposController implements Initializable{
 
-    RepositorioGrupo rg = new RepositorioGrupo();
-    RepositorioPessoa rp = new RepositorioPessoa();
+    Fachada fachada = Fachada.getInstance();
 
     @FXML
     private TextField txtNomeGrupo;
@@ -29,7 +31,7 @@ public class MenuGruposController implements Initializable{
     @FXML
     private ListView<Pessoa> listaTodasAsPessoas;
 
-    private ObservableList<Pessoa> observableListTodas = FXCollections.observableArrayList(rp.lerPessoa());
+    private ObservableList<Pessoa> observableListTodas = FXCollections.observableArrayList(fachada.listarPessoas());
 
 
     @FXML
@@ -41,7 +43,7 @@ public class MenuGruposController implements Initializable{
     @FXML
     private ComboBox<Grupo> comboBox;
 
-    private ObservableList<Grupo> observableListGrupo = FXCollections.observableArrayList(rg.lerGrupo());
+    private ObservableList<Grupo> observableListGrupo = FXCollections.observableArrayList(fachada.listarGrupos());
 
 
     @FXML
@@ -49,33 +51,46 @@ public class MenuGruposController implements Initializable{
         Pessoa p = listaTodasAsPessoas.getSelectionModel().getSelectedItem();
         Grupo g = comboBox.getSelectionModel().getSelectedItem();
 
-        if(p != null && g != null && !g.getPessoas().contains(p)){
+        int codigoMensagem = fachada.adicionarPessoaGrupo(p, g);
 
-            g.adicionarPessoa(p);
-            g.setSorteado(false);
-
+        if(codigoMensagem == 1){
             atualizarListas();
         }
-        else if (g.getPessoas().contains(p)){
+        else if (codigoMensagem == 2){
+
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Alerta");
             alert.setHeaderText("Adição inválida");
             alert.setContentText("Essa pessoa já foi adicionada ao grupo");
             alert.showAndWait();
+
         }
-        else if (p == null){
+        else if (codigoMensagem == 3){
+
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Alerta");
             alert.setHeaderText("Selecione uma pessoa");
             alert.setContentText("Nenhuma pessoa foi selecionada");
             alert.showAndWait();
+
         }
-        else if (g == null){
+        else if (codigoMensagem == 4){
+
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Alerta");
             alert.setHeaderText("Selecione um grupo");
             alert.setContentText("Nenhum grupo foi selecionado");
             alert.showAndWait();
+
+        }
+        else {
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erro");
+            alert.setHeaderText("Erro não esperado");
+            alert.setContentText("Contatar o programador para saber mais");
+            alert.showAndWait();
+
         }
 
     }
@@ -85,7 +100,7 @@ public class MenuGruposController implements Initializable{
         Pessoa p = listaPessoasNoGrupo.getSelectionModel().getSelectedItem();
         Grupo g = comboBox.getSelectionModel().getSelectedItem();
 
-        g.removerPessoa(p);
+        fachada.removerPessoaGrupo(p, g);
 
         atualizarListas();
     }
@@ -98,52 +113,60 @@ public class MenuGruposController implements Initializable{
 
     @FXML
     void salvar(ActionEvent event) {
-        if (txtNomeGrupo.getText().equals("") && datePicker.getValue() == null){
+
+        int codigoMensagem = fachada.salvarGrupo(txtNomeGrupo.getText(), datePicker.getValue());
+
+        observableListGrupo = FXCollections.observableArrayList(fachada.listarGrupos());
+        atualizarListas();
+
+        if (codigoMensagem == 1) {
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Confirmação");
+            alert.setHeaderText("Sucesso!");
+            alert.setContentText(txtNomeGrupo.getText() + " foi registrado com sucesso com a data " + datePicker.getValue());
+            alert.showAndWait();
+
+        } else if (codigoMensagem == 2){
+
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Alerta");
             alert.setHeaderText("Preencha todos os campos");
             alert.setContentText("Nenhum campo foi preenchido");
             alert.showAndWait();
-        }
-        else if (datePicker.getValue() == null) {
+
+        } else if (codigoMensagem == 3) {
+
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Alerta");
             alert.setHeaderText("Preencha todos os campos");
             alert.setContentText("Data não foi selecionada");
             alert.showAndWait();
-        }
-        else if (txtNomeGrupo.getText().equals("")){
+
+        } else if (codigoMensagem == 4){
+
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Alerta");
             alert.setHeaderText("Preencha todos os campos");
             alert.setContentText("Campo Nome não foi preenchido");
             alert.showAndWait();
-        } else {
-            boolean existe = false;
-            for (int i = 0 ; i < rg.lerGrupo().size() ; i ++){
-                if (rg.lerGrupo().get(i).getNome().equals(txtNomeGrupo.getText())){
-                    existe = true;
-                }
-            }
-            if (existe){
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Erro");
-                alert.setHeaderText("Grupo já existe");
-                alert.setContentText("Já foi registrado um grupo com esse nome");
-                alert.showAndWait();
-            }
-            else {
-                Grupo grupo = new Grupo(txtNomeGrupo.getText(), datePicker.getValue());
-                rg.salvarGrupo(grupo);
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Confirmação");
-                alert.setHeaderText("Sucesso!");
-                alert.setContentText(txtNomeGrupo.getText() + " foi registrado com sucesso com a data " + datePicker.getValue());
-                alert.showAndWait();
-            }
 
-            observableListGrupo = FXCollections.observableArrayList(rg.lerGrupo());
-            atualizarListas();
+        } else if (codigoMensagem == 5){
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erro");
+            alert.setHeaderText("Grupo já existe");
+            alert.setContentText("Já foi registrado um grupo com esse nome");
+            alert.showAndWait();
+
+        } else {
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erro");
+            alert.setHeaderText("Erro não esperado");
+            alert.setContentText("Contatar o programador para saber mais");
+            alert.showAndWait();
+
         }
 
     }
@@ -168,11 +191,7 @@ public class MenuGruposController implements Initializable{
 
         observableListPessoaGrupo = FXCollections.observableArrayList();
 
-        for (int i = 0 ; i < rg.lerGrupo().size() ; i++){
-            if (rg.lerGrupo().get(i).equals(comboBox.getSelectionModel().getSelectedItem())){
-                observableListPessoaGrupo = FXCollections.observableArrayList(rg.lerGrupo().get(i).getPessoas());
-            }
-        }
+        observableListPessoaGrupo = fachada.listarPessoasGrupo(comboBox.getSelectionModel().getSelectedItem());
 
         listaPessoasNoGrupo.setItems(observableListPessoaGrupo);
     }

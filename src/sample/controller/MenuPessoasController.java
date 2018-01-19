@@ -2,6 +2,7 @@ package sample.controller;
 
 import beans.Pessoa;
 import beans.Presente;
+import controller.Fachada;
 import data.RepositorioPessoa;
 import data.RepositorioPresente;
 import javafx.collections.FXCollections;
@@ -10,17 +11,12 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.text.Text;
-import javafx.util.Callback;
-import servicos.Servicos;
-
 import java.net.URL;
 import java.util.ResourceBundle;
 
 public class MenuPessoasController implements Initializable {
 
-    RepositorioPessoa rp = new RepositorioPessoa();
-    RepositorioPresente repositorioPresente = new RepositorioPresente();
+    Fachada fachada = Fachada.getInstance();
 
     @FXML
     private TextField txtNome;
@@ -43,7 +39,7 @@ public class MenuPessoasController implements Initializable {
     @FXML
     private ListView<Presente> listaTodosOsPresentes;
 
-    ObservableList<Presente> observableListPresentes = FXCollections.observableArrayList(repositorioPresente.ler());
+    ObservableList<Presente> observableListPresentes = FXCollections.observableArrayList(fachada.listarPresentes());
 
     @FXML
     private ListView<Presente> listaPresentesDaPessoa;
@@ -53,7 +49,7 @@ public class MenuPessoasController implements Initializable {
     @FXML
     private ComboBox<Pessoa> comboBox;
 
-    ObservableList<Pessoa> observableListPessoa = FXCollections.observableArrayList(rp.lerPessoa());
+    ObservableList<Pessoa> observableListPessoa = FXCollections.observableArrayList(fachada.listarPessoas());
 
     @FXML
     private Label nomePessoa;
@@ -69,67 +65,61 @@ public class MenuPessoasController implements Initializable {
 
     @FXML
     void salvar(ActionEvent event) {
-        if (!txtNome.getText().equals("")
-                || !txtApelido.getText().equals("")
-                || !txtSenha.getText().equals("")
-                || !txtConfSenha.getText().equals("")){
-            if (txtSenha.getText().equals(txtConfSenha.getText())){
-                boolean existeIgual = false;
+        int codigoMensagem = fachada.salvarPessoa(txtNome.getText(), txtApelido.getText(), txtSenha.getText(), txtConfSenha.getText());
 
-                String nome = txtNome.getText();
-                String apelido = txtApelido.getText();
-                String senha = txtSenha.getText();
+        if (codigoMensagem == 1){
 
-                for (int i = 0 ; i < rp.lerPessoa().size() ; i ++){
-                    if (rp.lerPessoa().get(i).getApelido().equals(apelido)){
-                        existeIgual = true;
-                    }
-                }
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Confirmação");
+            alert.setHeaderText("Sucesso!");
+            alert.setContentText(txtNome.getText() + " foi registrado com sucesso e possui o apelido " + txtApelido.getText());
+            alert.showAndWait();
 
-                if (!existeIgual){
-                    //Salvar
-                    Pessoa pessoa = new Pessoa(nome, apelido, senha);
-                    rp.salvarPessoa(pessoa);
+        }
+        else if(codigoMensagem == 2){
 
-                    observableListPessoa = FXCollections.observableArrayList(rp.lerPessoa());
-                    atualizar();
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Alerta");
+            alert.setHeaderText("Apelido já registrado");
+            alert.setContentText("Já existe uma pessoa registrada com esse apelido");
+            alert.showAndWait();
 
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Confirmação");
-                    alert.setHeaderText("Sucesso!");
-                    alert.setContentText(nome + " foi registrado com sucesso e possui o apelido " + apelido);
-                    alert.showAndWait();
-                } else {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("Alerta");
-                    alert.setHeaderText("Apelido já registrado");
-                    alert.setContentText("Já existe uma pessoa registrada com esse apelido");
-                    alert.showAndWait();
-                }
+        }
+        else if(codigoMensagem == 3){
 
-            } else {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Alerta");
-                alert.setHeaderText("Senha Não confere");
-                alert.setContentText("Senha digitada no campo 'Senha' é diferente do campo 'Confirmar Senha'");
-                alert.showAndWait();
-            }
-        } else {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Alerta");
+            alert.setHeaderText("Senha Não confere");
+            alert.setContentText("Senha digitada no campo 'Senha' é diferente do campo 'Confirmar Senha'");
+            alert.showAndWait();
+
+        } else if (codigoMensagem == 4){
+
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Alerta");
             alert.setHeaderText("Preencha todos os campos");
             alert.setContentText("Algum campo não foi preenchido");
             alert.showAndWait();
+
+        } else {
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erro");
+            alert.setHeaderText("Erro não esperado");
+            alert.setContentText("Contatar o programador para saber mais");
+            alert.showAndWait();
+
         }
+
+        observableListPessoa = FXCollections.observableArrayList(fachada.listarPessoas());
+        atualizar();
     }
 
 
     @FXML
     void removerPresente(ActionEvent event) {
-        Pessoa pessoa = comboBox.getSelectionModel().getSelectedItem();
-        Presente presente = listaPresentesDaPessoa.getSelectionModel().getSelectedItem();
 
-        pessoa.removerPresente(presente);
+        fachada.removerPresentePessoa(listaPresentesDaPessoa.getSelectionModel().getSelectedItem(), comboBox.getSelectionModel().getSelectedItem());
 
         atualizar();
     }
@@ -141,7 +131,7 @@ public class MenuPessoasController implements Initializable {
 
         if (presente != null && pessoa != null){
 
-            pessoa.adicionarPresente(presente);
+            fachada.adicionarPresentePessoa(presente, pessoa);
 
             atualizar();
 
@@ -179,19 +169,12 @@ public class MenuPessoasController implements Initializable {
 
         observableListPresentePessoa = FXCollections.observableArrayList();
 
-        for (int i = 0 ; i < rp.lerPessoa().size() ; i++){
-            if (rp.lerPessoa().get(i).equals(comboBox.getSelectionModel().getSelectedItem())){
-                observableListPresentePessoa = FXCollections.observableArrayList(rp.lerPessoa().get(i).getPresentes());
-            }
-        }
-
-        listaPresentesDaPessoa.setItems(observableListPresentePessoa);
+        listaPresentesDaPessoa.setItems(fachada.listarPresentesPessoa(comboBox.getSelectionModel().getSelectedItem()));
 
         if (comboBox.getSelectionModel().getSelectedItem() != null){
             nomePessoa.setText("Presentes de " + comboBox.getSelectionModel().getSelectedItem().getApelido());
         } else {
             nomePessoa.setText("Selecione uma pessoa");
         }
-
     }
 }

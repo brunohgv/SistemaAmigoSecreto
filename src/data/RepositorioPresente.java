@@ -7,7 +7,19 @@ import java.util.List;
 
 public class RepositorioPresente implements IRepositorioPresente {
 
-    private static List<Presente> listaPresentes = new ArrayList<Presente>();
+    private List<Presente> listaPresentes;
+    private static RepositorioPresente instance;
+
+    private RepositorioPresente () {
+        listaPresentes = new ArrayList<Presente>();
+    }
+
+    public static RepositorioPresente getInstance(){
+        if (instance == null){
+            instance = new RepositorioPresente();
+        }
+        return instance;
+    }
 
     @Override
     public boolean salvar(Presente presente) {

@@ -2,6 +2,7 @@ package sample.controller;
 
 import beans.Grupo;
 import beans.Pessoa;
+import controller.Fachada;
 import data.RepositorioGrupo;
 import data.RepositorioPessoa;
 import javafx.collections.FXCollections;
@@ -19,8 +20,7 @@ import java.util.ResourceBundle;
 
 public class MenuSorteioController implements Initializable{
 
-    RepositorioGrupo rg = new RepositorioGrupo();
-    RepositorioPessoa rp = new RepositorioPessoa();
+    Fachada fachada = Fachada.getInstance();
 
     @FXML
     private ComboBox<Grupo> comboBox;
@@ -28,18 +28,19 @@ public class MenuSorteioController implements Initializable{
     @FXML
     private ComboBox<Grupo> comboBoxGrupo;
 
-    ObservableList<Grupo> observableListGrupo = FXCollections.observableArrayList(rg.lerGrupo());
+    ObservableList<Grupo> observableListGrupo = FXCollections.observableArrayList(fachada.listarGrupos());
 
     @FXML
     private ComboBox<Pessoa> comboBoxPessoa;
 
-    ObservableList<Pessoa> observableListPessoa = FXCollections.observableArrayList(rp.lerPessoa());
+    ObservableList<Pessoa> observableListPessoa = FXCollections.observableArrayList(fachada.listarPessoas());
 
     @FXML
     private PasswordField txtSenha;
 
     @FXML
     void consultar(ActionEvent event) {
+
         if (!comboBoxGrupo.getSelectionModel().getSelectedItem().isSorteado()){
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Erro");
@@ -47,72 +48,72 @@ public class MenuSorteioController implements Initializable{
             alert.setContentText("Ainda não foi realizado o sorteio desse grupo");
             alert.showAndWait();
         } else {
-            Grupo g = comboBoxGrupo.getSelectionModel().getSelectedItem();
-            Pessoa p = comboBoxPessoa.getSelectionModel().getSelectedItem();
-
-            if (!txtSenha.getText().equals(p.getSenha())){
+            if (!txtSenha.getText().equals(comboBoxPessoa.getSelectionModel().getSelectedItem().getSenha())){
                 System.out.println("Senha incorreta");
             } else {
-                if (g.getPessoas().indexOf(p) == g.getPessoas().size() - 1){
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Amigo secreto");
-                    alert.setHeaderText("Mensagem");
-                    alert.setContentText("O amigo secreto de " + p.getApelido() + " no grupo " + g.getNome() + " é " + g.getPessoas().get(0).getApelido());
-                    alert.showAndWait();
-                } else{
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Amigo secreto");
-                    alert.setHeaderText("Mensagem");
-                    alert.setContentText("O amigo secreto de " + p.getApelido() + " no grupo " + g.getNome() + " é " + g.getPessoas().get(g.getPessoas().indexOf(p) + 1).getApelido());
-                    alert.showAndWait();
-                }
+
+                Pessoa pessoa = fachada.consultarAmigoSecreto(comboBoxGrupo.getSelectionModel().getSelectedItem(), comboBoxPessoa.getSelectionModel().getSelectedItem(), txtSenha.getText());
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Amigo secreto");
+                alert.setHeaderText("Mensagem");
+                alert.setContentText("O amigo secreto de " + comboBoxPessoa.getSelectionModel().getSelectedItem().getApelido() + " no grupo " + comboBoxGrupo.getSelectionModel().getSelectedItem().getNome() + " é " + pessoa.getApelido());
+                alert.showAndWait();
             }
         }
+
+        atualizar();
     }
 
     @FXML
     void sortear(ActionEvent event) {
-        if (comboBox.getSelectionModel().getSelectedItem() == null){
+
+        int codigoMensagem = fachada.sortear(comboBox.getSelectionModel().getSelectedItem());
+
+        if (codigoMensagem == 1){
+
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirmação");
+            alert.setHeaderText("Grupo sorteado");
+            alert.setContentText("O grupo foi sorteado com sucesso");
+            alert.showAndWait();
+
+        }
+        else if (codigoMensagem == 2){
+
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Alerta");
             alert.setHeaderText("Selecione um grupo");
             alert.setContentText("Nenhum grupo foi selecionado");
             alert.showAndWait();
-        }
-        else if (comboBox.getSelectionModel().getSelectedItem().isSorteado()){
+
+        } else if (codigoMensagem == 3){
+
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Erro");
             alert.setHeaderText("Erro no sorteio");
             alert.setContentText("O grupo selecionado já foi sorteado");
             alert.showAndWait();
-        }
-        else {
-            if (comboBox.getSelectionModel().getSelectedItem().getDataSorteio().isAfter(LocalDate.now())){
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Erro");
-                alert.setHeaderText("Erro no sorteio");
-                alert.setContentText("Só é possível realizar o sorteio na data prevista ou posterior");
-                alert.showAndWait();
-            }
-            else{
 
-                //Embaralha o array de pessoas
-                Collections.shuffle(comboBox.getSelectionModel().getSelectedItem().getPessoas());
+        } else if (codigoMensagem == 4) {
 
-                comboBox.getSelectionModel().getSelectedItem().setSorteado(true);
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erro");
+            alert.setHeaderText("Erro no sorteio");
+            alert.setContentText("Só é possível realizar o sorteio na data prevista ou posterior");
+            alert.showAndWait();
 
-                //Requisito 8
-                comboBox.getSelectionModel().getSelectedItem().listarPessoas();
-                comboBox.getSelectionModel().getSelectedItem().listarAmigoSecreto();
+        } else {
 
-                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                alert.setTitle("Confirmação");
-                alert.setHeaderText("Grupo sorteado");
-                alert.setContentText("O grupo foi sorteado com sucesso");
-                alert.showAndWait();
-            }
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erro");
+            alert.setHeaderText("Erro não esperado");
+            alert.setContentText("Contatar o programador para saber mais");
+            alert.showAndWait();
+
         }
 
+        atualizar();
     }
 
     @Override

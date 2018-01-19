@@ -1,6 +1,7 @@
 package data;
 
 import beans.Pessoa;
+import beans.Presente;
 import com.sun.jdi.event.ExceptionEvent;
 
 import java.util.ArrayList;
@@ -8,7 +9,19 @@ import java.util.List;
 
 public class RepositorioPessoa implements IRepositorioPessoa {
 
-    private static List<Pessoa> listaPessoas = new ArrayList<Pessoa>();
+    private List<Pessoa> listaPessoas;
+    private static RepositorioPessoa instance;
+
+    private RepositorioPessoa(){
+        listaPessoas = new ArrayList<Pessoa>();
+    }
+
+    public static RepositorioPessoa getInstance() {
+        if (instance == null){
+            instance = new RepositorioPessoa();
+        }
+        return instance;
+    }
 
     @Override
     public boolean salvarPessoa(Pessoa pessoa) {
@@ -56,6 +69,28 @@ public class RepositorioPessoa implements IRepositorioPessoa {
     @Override
     public String lerNomeCompletoPessoa(Pessoa pessoa){
         return pessoa.getNomeCompleto();
+    }
+
+    @Override
+    public boolean removerPresente(Pessoa pessoa, Presente presente) {
+        for(int i = 0 ; i < listaPessoas.size() ; i ++){
+            if (listaPessoas.get(i).getApelido().equals(pessoa.getApelido())){
+                pessoa.removerPresente(presente);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean adicionarPresente(Pessoa pessoa, Presente presente) {
+        for(int i = 0 ; i < listaPessoas.size() ; i ++){
+            if (listaPessoas.get(i).getApelido().equals(pessoa.getApelido())){
+                pessoa.adicionarPresente(presente);
+                return true;
+            }
+        }
+        return false;
     }
 
 }

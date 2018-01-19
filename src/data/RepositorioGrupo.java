@@ -1,6 +1,8 @@
 package data;
 
 import beans.Grupo;
+import beans.Pessoa;
+import controller.Fachada;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -8,7 +10,20 @@ import java.util.List;
 
 public class RepositorioGrupo implements IRepositorioGrupo {
 
-    private static List<Grupo> listaGrupos = new ArrayList<Grupo>();
+    private List<Grupo> listaGrupos;
+    private static RepositorioGrupo instance;
+
+    private RepositorioGrupo() {
+        listaGrupos = new ArrayList<Grupo>();
+    }
+
+    public static RepositorioGrupo getInstance(){
+        if (instance == null){
+            instance = new RepositorioGrupo();
+        }
+        return instance;
+    }
+
 
     @Override
     public boolean salvarGrupo(Grupo grupo) {
@@ -42,6 +57,16 @@ public class RepositorioGrupo implements IRepositorioGrupo {
             if (grupo1.getNome().equals(grupo.getNome())){
                 listaGrupos.remove(grupo1);
                 listaGrupos.add(grupo);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean removerPessoaGrupo(Pessoa pessoa, Grupo grupo){
+        for (int i = 0 ; i < listaGrupos.size() ; i++){
+            if (listaGrupos.get(i).equals(grupo)){
+                listaGrupos.get(i).removerPessoa(pessoa);
                 return true;
             }
         }
